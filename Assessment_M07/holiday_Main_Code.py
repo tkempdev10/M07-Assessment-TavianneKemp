@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 from bs4 import BeautifulSoup
 import requests
@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from config import jsonHolidayloc
 from config import savedHolidayloc
 from config import menutxtloc
-from config import weatherURL
-from config import city
 
 menutxt = ""
 # -------------------------------------------
