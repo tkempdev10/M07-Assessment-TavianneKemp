@@ -7,6 +7,7 @@ from config import jsonHolidayloc
 from config import savedHolidayloc
 from config import menutxtloc
 
+
 menutxt = ""
 # -------------------------------------------
 # Modify the holiday class to 
@@ -20,8 +21,7 @@ class Holiday:
     
     def __init__(self, name, date):
         self._name = name
-        dateTime = datetime.strptime(date,"%Y-%m-%d")
-        self._date = dateTime.strftime('%Y-%m-%d')
+        self._date = datetime.strptime(date,"%Y-%m-%d")
     
     #Get
     @property
@@ -44,10 +44,16 @@ class Holiday:
     def __str__ (self):
         # String output
         # Holiday output when printed.
-        HolidayOutput = (f"{self.name} ({self.date.strftime('%Y-%m-%d')})")
+        HolidayOutput = (f"{self._name} ({self._date.strftime('%Y-%m-%d')})")
         return HolidayOutput
-          
-           
+    
+    def DateChange(self):
+        # to turn this element into a dictionary, date needs to be formatted as a string
+        dateDict = {}
+        dateDict['name'] = self._name
+        dateDict['date'] = self._date.strftime('%Y-%m-%d')
+        return dateDict
+                  
 # -------------------------------------------
 # The HolidayList class acts as a wrapper and container
 # For the list of holidays
@@ -107,51 +113,71 @@ class HolidayList:
 
     def save_to_json(self, filelocation):
         # Write out json file to selected file.
-        holidayDict = []
-        for holiday in self.innerHolidays:
-            Select_holiday = dict()
-            Select_holiday['name'] = holiday.name
-            Select_holiday['date'] = holiday.date
-            holidayDict.append(Select_holiday)
+        listHolidayDictionaries = list(map(lambda x: x.DateChange(), self.innerHolidays))
+        fullOutputDictionary = {'holidays': listHolidayDictionaries}
+        JSONFormatting = json.dumps(fullOutputDictionary, indent=2)
         #Now writing to file
-        with open(filelocation, 'w') as file:
-            json.dump(holidayDict, file)        
-
+        with open(filelocation, "w") as file:
+            file.write(JSONFormatting)
         
     def scrapeHolidays(self):
         # Scrape Holidays from https://www.timeanddate.com/holidays/us/ 
         # Remember, 2 previous years, current year, and 2  years into the future. You can scrape multiple years by adding year to the timeanddate URL. For example https://www.timeanddate.com/holidays/us/2022
         # Check to see if name and date of holiday is in innerHolidays array
         # Add non-duplicates to innerHolidays
-        # Handle any exceptions. 
+        # Handle any exceptions.
         try:
-            holidays = [] 
-            for year in range(2020, 2025):   
-                website = (f'https://www.timeanddate.com/holidays/us/{year}?hol=33554809')
-                connection = requests.get(website)
+            holidays = []
+            #going from 2 years in the past to two years in the future
+            for year in range(2020,2025):
 
-                DaSoup = BeautifulSoup(connection, 'html.parser')
-                table = DaSoup.find('table', attrs = {'id': 'holidays-table'})
-                table_data = table.find('tbody')
+                url = (f'https://www.timeanddate.com/holidays/us/{year}?hol=33554809')
+                connection = requests.get(url).text
 
-                #iterating through all of the holidays
-                for row in table_data.find_all('tr'):
-                    holiday = {}
-                    if (row.find('a') is not None and row.find('th') is not None):
-                        holiday['name'] = row.find('a').text
-                        #formatting date correctly
-                        date = row.find('th').text
-                        date = datetime.strptime(date, "%b %d %Y")
-                        date = date.strftime("%Y-%m-%d")
-                        holiday['date'] = date
-                    holidays.append(holiday)
-                #Remove empty holidays
-                for holiday in holidays:
-                    if holiday == {}:
-                        holidays.remove({})
-                #Remove duplicates??
+                soup = BeautifulSoup(connection, 'html.parser')
+                table = soup.find('table', attrs={'id':'holidays-table'})
+                body = table.find('tbody')
+                #Finding all 
+                for row in body.find_all('tr'):
+                    
+                    #Holiday Dictionary
+                    HolidayDict = {}
+
+                    date = row.find('th')
+                    Holname = row.find('a')
+
+                    #check rows where date and name are not None
+                    if date is not None and Holname is not None:
+                        
+                        #format date correctly
+                        date = date.text
+                        date = f"{date} {year}"
+                        date= datetime.strptime(date,"%b %d %Y")
+                        # date = date.date()
+                        date = date.strftime('%Y-%m-%d')
+                        
+                        HolidayDict['Name'] = Holname.text
+                        HolidayDict['Date'] = date
+                    
+                    holidays.append(HolidayDict)
+
+                    #remove empty dictionaries from list
+                    while {} in holidays:
+                        holidays.remove({}) 
+
+                    #remove duplicate holidays
+                    holidays = [dict(t) for t in {tuple(d.items()) for d in holidays}]
+
+            
+            for i in holidays:
+
+                temphol = (Holiday(i['Name'], i['Date']))
+                #adding in non duplicate holidays to the inner holiday class
+                if temphol not in self.innerHolidays:
+                    self.innerHolidays.append(temphol)
+                
         except:
-            print("Sorry! There was an error!")
+                print("Sorry there was a connection issue!")
 
     def numHolidays(self):
         # Return the total number of holidays in innerHolidays
@@ -178,6 +204,7 @@ class HolidayList:
             print(holiday.__str__())
 
     #def getWeather(weekNum):
+    #unable to get this to work!
         # Convert weekNum to range between two days
         # Use Try / Except to catch problems
         # Query API for weather in that week range
@@ -219,7 +246,7 @@ def main():
         try:
             # 4. Display User Menu (Print the menu)
             print(menutxt)
-            UserChoice = int(input("What would you like to do?" )) 
+            UserChoice = int(input("What would you like to do? ")) 
             if (UserChoice == 1):
                 #add holiday
                 print("Add a Holiday")
