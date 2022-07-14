@@ -8,7 +8,8 @@ from config import savedHolidayloc
 from config import menutxtloc
 
 
-menutxt = ""
+f = open("menu.txt")
+menutxt = f.read()
 # -------------------------------------------
 # Modify the holiday class to 
 # 1. Only accept Datetime objects for date.
@@ -196,12 +197,12 @@ class HolidayList:
         return HolidaysbyWeek
 
 
-    def displayHolidaysInWeek(holidayList):
+    def displayHolidaysInWeek(self, holidayList):
         # Use your filter_holidays_by_week to get list of holidays within a week as a parameter
         # Output formated holidays in the week. 
         # * Remember to use the holiday __str__ method.
         for holiday in holidayList: 
-            print(holiday.__str__())
+            print(holiday)
 
     #def getWeather(weekNum):
     #unable to get this to work!
@@ -279,6 +280,7 @@ def main():
                         validDate = True
                     except:
                         print("That is an incorrect date format. Please use the YYYY-MM-DD format!")
+                ExDate = datetime.strptime(ExDate, "%Y-%m-%d")
                 IsListed = List.findHoliday(ExHoliday, ExDate)
                 if (IsListed != None):
                     #remove holiday
